@@ -25,7 +25,8 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);  // Reference for the input field
-  const messagesEndRef = useRef<HTMLDivElement>(null);  // Reference for scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null);  // Reference for scrolling messages
+  const threadsEndRef = useRef<HTMLDivElement>(null);  // Reference for scrolling threads
 
   // Fetch threads on page load
   const fetchThreads = async () => {
@@ -52,9 +53,16 @@ export default function Chat() {
   };
 
   // Scroll to the bottom of the messages
-  const scrollToBottom = () => {
+  const scrollToBottomMessages = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Scroll to the bottom of the threads
+  const scrollToBottomThreads = () => {
+    if (threadsEndRef.current) {
+      threadsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -71,7 +79,7 @@ export default function Chat() {
       setNewMessage("");
 
       // Scroll to bottom after sending the message
-      scrollToBottom();
+      scrollToBottomMessages();
 
       // If creating a new thread (i.e., thread_id is null), refetch threads
       if (!selectedThread) {
@@ -81,10 +89,13 @@ export default function Chat() {
         const newThread = response.data.thread;  // Assuming backend returns the new thread in response
         setSelectedThread(newThread);
         fetchMessages(newThread.id);  // Fetch messages for the newly created thread
+
+        // Scroll to the bottom of the thread list
+        scrollToBottomThreads();
       } else {
         // If it's an existing thread, just update the messages
         setMessages([...messages, response.data.user_message, response.data.chatbot_response]);
-        scrollToBottom();  // Scroll to the bottom after updating messages
+        scrollToBottomMessages();  // Scroll to the bottom after updating messages
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -107,8 +118,12 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    scrollToBottom();  // Scroll to the bottom every time messages are updated
+    scrollToBottomMessages();  // Scroll to the bottom every time messages are updated
   }, [messages]);
+
+  useEffect(() => {
+    scrollToBottomThreads();  // Scroll to the bottom every time threads are updated
+  }, [threads]);
 
   return (
     <div className="container">
@@ -145,6 +160,7 @@ export default function Chat() {
                 {thread.title}
               </li>
             ))}
+            <div ref={threadsEndRef} />  {/* Reference to scroll to the bottom of the threads */}
           </ul>
         </div>
 
