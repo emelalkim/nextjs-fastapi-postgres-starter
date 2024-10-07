@@ -64,7 +64,18 @@ export default function Chat() {
       // Clear input
       setNewMessage("");
 
-      setMessages([...messages, response.data.user_message, response.data.chatbot_response]);
+      // If creating a new thread (i.e., thread_id is null), refetch threads
+      if (!selectedThread) {
+        await fetchThreads();  // Refetch threads
+
+        // Automatically select and highlight the new thread
+        const newThread = response.data.thread;  // Assuming backend returns the new thread in response
+        setSelectedThread(newThread);
+        fetchMessages(newThread.id);  // Fetch messages for the newly created thread
+      } else {
+        // If it's an existing thread, just update the messages
+        setMessages([...messages, response.data.user_message, response.data.chatbot_response]);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
