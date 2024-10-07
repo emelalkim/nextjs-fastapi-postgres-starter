@@ -8,6 +8,7 @@ from models import User, Message, Thread
 from datetime import datetime
 from sqlalchemy.orm import selectinload
 from typing import Optional
+import random
 
 seed_user_if_needed()
 
@@ -35,6 +36,10 @@ class MessageRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SendMessageRequest(BaseModel):
+    message: str
+    thread_id: Optional[int] = None  # Optional thread_id for the message
 
 @app.get("/users/me")
 async def get_my_user():
@@ -102,3 +107,88 @@ async def get_thread_messages(thread_id: int):
                 )
                 for message in messages
             ]
+
+# Sample list of random responses the chatbot can send
+chatbot_responses = [
+    "That's interesting! You said: {message}",
+    "I see what you mean by: {message}",
+    "Let me think about: {message}",
+    "I appreciate your thoughts on: {message}"
+]
+
+@app.post("/send_message")
+async def send_message(request: SendMessageRequest):
+    async with AsyncSession(engine) as session:
+        async with session.begin():
+            # Fetch the current user (assuming only one user for simplicity)
+            user_result = await session.execute(select(User))
+            user = user_result.scalars().first()
+            if user is None:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            # If thread_id is provided, fetch the thread; otherwise, create a new thread
+            if request.thread_id:
+                # Fetch the thread
+                thread_result = await session.execute(select(Thread).filter_by(id=request.thread_id))
+                thread = thread_result.scalars().first()
+
+                if thread is None:
+                    raise HTTPException(status_code=404, detail="Thread not found")
+            else:
+                # Create a new thread with the message as the title
+                thread = Thread(
+                    title=request.message[:50],  # Use the first 50 characters of the message as the title
+                    user_id=user.id,
+                    created_at=datetime.utcnow()
+                )
+                session.add(thread)
+                await session.flush()  # This flushes to get the thread ID for the message
+
+            # Add the user message
+            user_message = Message(
+                message=request.message,
+                user_id=user.id,
+                thread_id=thread.id,
+                timestamp=datetime.utcnow(),
+            )
+            session.add(user_message)
+            await session.flush()  # Flush to get the message ID for response_to reference
+
+            # Generate a random chatbot response
+            response_text = random.choice(chatbot_responses).format(message=request.message)
+
+            # Add the chatbot's response message
+            chatbot_message = Message(
+                message=response_text,
+                user_id=user.id, 
+                thread_id=thread.id,
+                timestamp=datetime.utcnow(),
+                response_to_id=user_message.id
+            )
+            session.add(chatbot_message)
+            thread_data = {
+                "id": thread.id,
+                "title": thread.title,
+                "created_at": thread.created_at
+            }
+            user_message_data = {
+                "id": user_message.id,
+                "message": user_message.message,
+                "timestamp": user_message.timestamp
+            }
+            chatbot_message_data = {
+                "id": chatbot_message.id,
+                "message": chatbot_message.message,
+                "response_to_id": chatbot_message.response_to_id,
+                "timestamp": chatbot_message.timestamp
+            }
+
+        # Commit the new thread and both messages to the database
+        await session.commit()
+
+    # Return the response
+    return {
+        "thread": thread_data,
+        "user_message": user_message_data,
+        "chatbot_response": chatbot_message_data
+    }
