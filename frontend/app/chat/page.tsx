@@ -216,10 +216,15 @@ export default function Chat() {
         .chat-container {
           display: flex;
           justify-content: space-between;
+          height: 75vh; /* Use 75% of the window height */
         }
         .thread-list {
           width: 25%;
+          height: 75vh;  /* Set the height to 75% of the window */
+          max-height: 75vh;  /* Ensure it doesn't exceed the window height */
+          overflow-y: scroll;  /* Enable scrolling */
           padding-right: 10px;
+          border-right: 1px solid #ddd;  
         }
         .thread-list ul {
           list-style-type: none;
@@ -232,6 +237,7 @@ export default function Chat() {
         }
         .chat-window {
           width: 70%;
+          height: 75vh;  /* Set the height to 75% of the window */
           border: 1px solid #ddd;
           padding: 10px;
           border-radius: 5px;
@@ -239,8 +245,8 @@ export default function Chat() {
           flex-direction: column;
         }
         .messages {
-          height: 400px;
-          overflow-y: scroll;
+          flex: 1;
+          overflow-y: auto;  /* Enable scrolling for messages */
           border-bottom: 1px solid #ddd;
           padding-bottom: 10px;
           display: flex;
