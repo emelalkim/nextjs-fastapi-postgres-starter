@@ -51,6 +51,12 @@ export default function Chat() {
     }
   };
 
+  // Scroll to the bottom of the messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // Handle message send
   const handleSendMessage = async () => {
@@ -64,6 +70,9 @@ export default function Chat() {
       // Clear input
       setNewMessage("");
 
+      // Scroll to bottom after sending the message
+      scrollToBottom();
+
       // If creating a new thread (i.e., thread_id is null), refetch threads
       if (!selectedThread) {
         await fetchThreads();  // Refetch threads
@@ -75,6 +84,7 @@ export default function Chat() {
       } else {
         // If it's an existing thread, just update the messages
         setMessages([...messages, response.data.user_message, response.data.chatbot_response]);
+        scrollToBottom();  // Scroll to the bottom after updating messages
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -95,6 +105,10 @@ export default function Chat() {
     setMessages([]);  // Clear the message list
     inputRef.current?.focus();  // Focus on the input field
   };
+
+  useEffect(() => {
+    scrollToBottom();  // Scroll to the bottom every time messages are updated
+  }, [messages]);
 
   return (
     <div className="container">
