@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaPen } from "react-icons/fa";  // Import Font Awesome Pen Icon
 
-// Define a type for Thread
+// Define types for Thread and Message
 interface Thread {
   id: number;
   title: string;
@@ -30,8 +30,16 @@ export default function Chat() {
 
   // Fetch threads on page load
   const fetchThreads = async () => {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return;
+
     try {
-      const response = await axios.get("/api/threads");
+      const response = await axios.get("/api/threads", {
+        headers: {
+          Authorization: `Basic ${btoa(`${userId}:`)}`,  // Send user_id in Basic Auth format
+        },
+      });
+
       setThreads(response.data);
     } catch (error) {
       console.error("Error fetching threads:", error);
@@ -44,8 +52,15 @@ export default function Chat() {
 
   // Fetch messages when a thread is selected
   const fetchMessages = async (threadId: number) => {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return;
+
     try {
-      const response = await axios.get(`/api/threads/${threadId}/messages`);
+      const response = await axios.get(`/api/threads/${threadId}/messages`, {
+        headers: {
+          Authorization: `Basic ${btoa(`${userId}:`)}`,  // Send user_id with every request
+        },
+      });
       setMessages(response.data);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -68,12 +83,19 @@ export default function Chat() {
 
   // Handle message send
   const handleSendMessage = async () => {
-    if (newMessage.trim() === "") return;
+    const userId = localStorage.getItem("user_id");
+    if (newMessage.trim() === "" || !userId) return;
+
     try {
-      const response = await axios.post(`/api/send_message`, {
-        message: newMessage,
-        thread_id: selectedThread ? selectedThread.id : null,  // Send null when creating a new thread
-      });
+      const response = await axios.post(
+        "/api/send_message",
+        { message: newMessage, thread_id: selectedThread ? selectedThread.id : null },
+        {
+          headers: {
+            Authorization: `Basic ${btoa(`${userId}:`)}`,  // Send user_id with message
+          },
+        }
+      );
 
       // Clear input
       setNewMessage("");
