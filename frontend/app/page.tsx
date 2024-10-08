@@ -74,7 +74,7 @@ export default function Home() {
         <h1>Hello, {user.name}!</h1>
         <button onClick={handleLogout} className="logout-btn">Logout</button>
       </div>
-      <Chat onLogout={handleLogout} />  {/* Pass the logout function to the Chat component */}
+      <Chat  />
 
       <style jsx>{`
         .header {
